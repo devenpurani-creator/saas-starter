@@ -27,6 +27,90 @@ type ActionState = {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+type DealHistoryData = {
+  totalDecoded: number;
+  estimatedExtraEarned: number;
+  recentDecodes: {
+    date: string;
+    verdict: string;
+    recommendedCounterLow: number;
+    recommendedCounterHigh: number;
+    originalOfferAmount: number | null;
+  }[];
+};
+
+function DealHistorySkeleton() {
+  return (
+    <Card className="mb-8 h-[160px]">
+      <CardHeader>
+        <CardTitle>Deal History</CardTitle>
+      </CardHeader>
+    </Card>
+  );
+}
+
+function DealHistory() {
+  const { data } = useSWR<DealHistoryData>('/api/deal-history', fetcher);
+
+  if (!data) {
+    return null;
+  }
+
+  return (
+    <Card className="mb-8">
+      <CardHeader>
+        <CardTitle>Deal History</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <p className="text-2xl font-bold">{data.totalDecoded}</p>
+            <p className="text-sm text-muted-foreground">Deals decoded</p>
+          </div>
+          <div>
+            <p
+              className={`text-2xl font-bold ${
+                data.estimatedExtraEarned >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {data.estimatedExtraEarned >= 0 ? '+' : '-'}$
+              {Math.abs(data.estimatedExtraEarned).toLocaleString()}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Estimated extra earned by negotiating
+            </p>
+          </div>
+        </div>
+
+        {data.totalDecoded === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No deals decoded yet.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {data.recentDecodes.map((d, i) => (
+              <li
+                key={i}
+                className="flex flex-wrap items-center justify-between gap-2 text-sm border-t border-gray-100 pt-2 first:border-t-0 first:pt-0"
+              >
+                <span className="text-gray-700">
+                  {new Date(d.date).toLocaleDateString()} &middot; {d.verdict}
+                </span>
+                <span className="text-muted-foreground">
+                  Counter ${d.recommendedCounterLow}-${d.recommendedCounterHigh}
+                  {d.originalOfferAmount !== null && (
+                    <> vs offer ${d.originalOfferAmount}</>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function SubscriptionSkeleton() {
   return (
     <Card className="mb-8 h-[140px]">
@@ -273,8 +357,8 @@ export default function SettingsPage() {
   return (
     <section className="flex-1 p-4 lg:p-8">
       <h1 className="text-lg lg:text-2xl font-medium mb-6">Team Settings</h1>
-      <Suspense fallback={<SubscriptionSkeleton />}>
-        <ManageSubscription />
+      <Suspense fallback={<DealHistorySkeleton />}>
+        <DealHistory />
       </Suspense>
       <Suspense fallback={<TeamMembersSkeleton />}>
         <TeamMembers />

@@ -54,6 +54,40 @@ export const activityLogs = pgTable('activity_logs', {
   ipAddress: varchar('ip_address', { length: 45 }),
 });
 
+export const dealDecodeUsage = pgTable('deal_decode_usage', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .unique()
+    .references(() => users.id),
+  decodeCount: integer('decode_count').notNull().default(0),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const creatorRateCards = pgTable('creator_rate_cards', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .unique()
+    .references(() => users.id),
+  ratePerVideo: integer('rate_per_video'),
+  ratePerPhoto: integer('rate_per_photo'),
+  ratePerReel: integer('rate_per_reel'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const dealDecodes = pgTable('deal_decodes', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  verdict: varchar('verdict', { length: 20 }).notNull(),
+  recommendedCounterLow: integer('recommended_counter_low').notNull(),
+  recommendedCounterHigh: integer('recommended_counter_high').notNull(),
+  originalOfferAmount: integer('original_offer_amount'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 export const invitations = pgTable('invitations', {
   id: serial('id').primaryKey(),
   teamId: integer('team_id')
@@ -122,6 +156,12 @@ export type ActivityLog = typeof activityLogs.$inferSelect;
 export type NewActivityLog = typeof activityLogs.$inferInsert;
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
+export type DealDecodeUsage = typeof dealDecodeUsage.$inferSelect;
+export type NewDealDecodeUsage = typeof dealDecodeUsage.$inferInsert;
+export type CreatorRateCard = typeof creatorRateCards.$inferSelect;
+export type NewCreatorRateCard = typeof creatorRateCards.$inferInsert;
+export type DealDecode = typeof dealDecodes.$inferSelect;
+export type NewDealDecode = typeof dealDecodes.$inferInsert;
 export type TeamDataWithMembers = Team & {
   teamMembers: (TeamMember & {
     user: Pick<User, 'id' | 'name' | 'email'>;

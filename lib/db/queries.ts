@@ -1,6 +1,15 @@
-import { desc, and, eq, isNull } from 'drizzle-orm';
+import { desc, and, eq, isNull, sql } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import {
+  activityLogs,
+  teamMembers,
+  teams,
+  users,
+  dealDecodeUsage,
+  creatorRateCards,
+  dealDecodes,
+  NewDealDecode
+} from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
@@ -97,6 +106,96 @@ export async function getActivityLogs() {
     .where(eq(activityLogs.userId, user.id))
     .orderBy(desc(activityLogs.timestamp))
     .limit(10);
+}
+
+export async function getUsage(userId: number) {
+  const rows = await db
+    .select()
+    .from(dealDecodeUsage)
+    .where(eq(dealDecodeUsage.userId, userId))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+export async function ensureUsage(userId: number) {
+  const existing = await getUsage(userId);
+  if (existing) {
+    return existing;
+  }
+
+  const [created] = await db
+    .insert(dealDecodeUsage)
+    .values({ userId })
+    .onConflictDoNothing()
+    .returning();
+
+  return created ?? (await getUsage(userId))!;
+}
+
+export async function incrementUsage(userId: number) {
+  await ensureUsage(userId);
+
+  const [updated] = await db
+    .update(dealDecodeUsage)
+    .set({
+      decodeCount: sql`${dealDecodeUsage.decodeCount} + 1`,
+      updatedAt: new Date()
+    })
+    .where(eq(dealDecodeUsage.userId, userId))
+    .returning();
+
+  return updated;
+}
+
+export async function getRateCard(userId: number) {
+  const rows = await db
+    .select()
+    .from(creatorRateCards)
+    .where(eq(creatorRateCards.userId, userId))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+export async function upsertRateCard(
+  userId: number,
+  rates: {
+    ratePerVideo: number | null;
+    ratePerPhoto: number | null;
+    ratePerReel: number | null;
+  }
+) {
+  const existing = await getRateCard(userId);
+
+  if (existing) {
+    const [updated] = await db
+      .update(creatorRateCards)
+      .set({ ...rates, updatedAt: new Date() })
+      .where(eq(creatorRateCards.userId, userId))
+      .returning();
+    return updated;
+  }
+
+  const [created] = await db
+    .insert(creatorRateCards)
+    .values({ userId, ...rates })
+    .returning();
+
+  return created;
+}
+
+export async function createDealDecode(entry: NewDealDecode) {
+  const [created] = await db.insert(dealDecodes).values(entry).returning();
+  return created;
+}
+
+export async function getDealDecodesForUser(userId: number) {
+  return db
+    .select()
+    .from(dealDecodes)
+    .where(eq(dealDecodes.userId, userId))
+    .orderBy(desc(dealDecodes.createdAt));
 }
 
 export async function getTeamForUser() {

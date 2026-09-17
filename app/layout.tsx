@@ -1,12 +1,28 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/react';
 import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { SWRConfig } from 'swr';
 
+const APP_TITLE = 'UGC Deal Decoder';
+const APP_DESCRIPTION =
+  'Paste a brand deal offer and instantly see if the pay is fair, how risky the rights terms are, and get a ready-to-send counter-message.';
+
 export const metadata: Metadata = {
-  title: 'Next.js SaaS Starter',
-  description: 'Get started quickly with Next.js, Postgres, and Stripe.'
+  metadataBase: new URL(process.env.BASE_URL || 'http://localhost:3000'),
+  title: APP_TITLE,
+  description: APP_DESCRIPTION,
+  openGraph: {
+    title: APP_TITLE,
+    description: APP_DESCRIPTION,
+    type: 'website'
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: APP_TITLE,
+    description: APP_DESCRIPTION
+  }
 };
 
 export const viewport: Viewport = {
@@ -38,6 +54,7 @@ export default function RootLayout({
         >
           {children}
         </SWRConfig>
+        <Analytics />
       </body>
     </html>
   );
