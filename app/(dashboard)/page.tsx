@@ -30,8 +30,9 @@ type DealResult = {
 };
 
 type UsageData = {
-  decodesRemaining: number;
+  decodesRemaining: number | null;
   limitReached: boolean;
+  unlimited: boolean;
 };
 
 type RateCardData = {
@@ -251,7 +252,11 @@ export default function HomePage() {
                 {loading ? 'Decoding...' : 'Decode This Deal'}
               </Button>
 
-              {usage && !limitReached && (
+              {usage && usage.unlimited && (
+                <p className="text-xs text-gray-500">Unlimited decodes</p>
+              )}
+
+              {usage && !usage.unlimited && !limitReached && (
                 <p className="text-xs text-gray-500">
                   {usage.decodesRemaining} free decode
                   {usage.decodesRemaining === 1 ? '' : 's'} remaining

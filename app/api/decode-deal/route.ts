@@ -7,7 +7,7 @@ import {
   createDealDecode
 } from '@/lib/db/queries';
 import { scoreDeal } from '@/lib/ai/decode-deal';
-import { FREE_DECODE_LIMIT } from '@/lib/usage';
+import { FREE_DECODE_LIMIT, hasUnlimitedDecodes } from '@/lib/usage';
 import { PLATFORMS, NICHES } from '@/lib/creator-options';
 
 export async function GET() {
@@ -17,12 +17,16 @@ export async function GET() {
   }
 
   const usage = await ensureUsage(user.id);
-  const decodesRemaining = Math.max(0, FREE_DECODE_LIMIT - usage.decodeCount);
+  const unlimited = hasUnlimitedDecodes(user.email);
+  const decodesRemaining = unlimited
+    ? null
+    : Math.max(0, FREE_DECODE_LIMIT - usage.decodeCount);
 
   return NextResponse.json({
     decodesUsed: usage.decodeCount,
     decodesRemaining,
-    limitReached: decodesRemaining <= 0
+    limitReached: !unlimited && decodesRemaining !== null && decodesRemaining <= 0,
+    unlimited
   });
 }
 
@@ -59,7 +63,8 @@ export async function POST(request: Request) {
   }
 
   const usage = await ensureUsage(user.id);
-  if (usage.decodeCount >= FREE_DECODE_LIMIT) {
+  const unlimited = hasUnlimitedDecodes(user.email);
+  if (!unlimited && usage.decodeCount >= FREE_DECODE_LIMIT) {
     return NextResponse.json(
       {
         error:
@@ -96,7 +101,9 @@ export async function POST(request: Request) {
   }
 
   const updatedUsage = await incrementUsage(user.id);
-  const decodesRemaining = Math.max(0, FREE_DECODE_LIMIT - updatedUsage.decodeCount);
+  const decodesRemaining = unlimited
+    ? null
+    : Math.max(0, FREE_DECODE_LIMIT - updatedUsage.decodeCount);
 
   await createDealDecode({
     userId: user.id,
